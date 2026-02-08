@@ -61,7 +61,7 @@ pipeline:
   ocr_api:
     # Basic connection
     api_host: 127.0.0.1
-    api_port: 8080
+    api_port: 8099
 
     # Model name included in API requests.
     # Required for mlx_vlm.server (e.g. "mlx-community/GLM-OCR-bf16").

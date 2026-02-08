@@ -201,5 +201,16 @@ def main():
             app.config["pipeline"].stop()
 
 
+def create_gunicorn_app():
+    """Factory for gunicorn: ``gunicorn 'glmocr.server:create_gunicorn_app()'``."""
+    config_path = os.environ.get("GLMOCR_CONFIG")
+    config = load_config(config_path)
+    configure_logging(level=config.logging.level)
+    app = create_app(config)
+    pipeline = app.config["pipeline"]
+    pipeline.start()
+    return app
+
+
 if __name__ == "__main__":
     main()

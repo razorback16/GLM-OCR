@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Dict, Optional
 
@@ -55,6 +56,7 @@ class PPDocLayoutDetector(BaseLayoutDetector):
         self._model = None
         self._image_processor = None
         self._device = None
+        self._lock = threading.Lock()
 
     def start(self):
         """Load model and processor once in the main process."""
@@ -173,6 +175,18 @@ class PPDocLayoutDetector(BaseLayoutDetector):
         if self._model is None:
             raise RuntimeError("Layout detector not started. Call start() first.")
 
+        with self._lock:
+            return self._process_locked(
+                images, save_visualization, visualization_output_dir, global_start_idx
+            )
+
+    def _process_locked(
+        self,
+        images: List[Image.Image],
+        save_visualization: bool = False,
+        visualization_output_dir: Optional[str] = None,
+        global_start_idx: int = 0,
+    ) -> List[List[Dict]]:
         num_images = len(images)
         image_batch = []
         for image in images:

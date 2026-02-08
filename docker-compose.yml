@@ -1,0 +1,59 @@
+services:
+  vllm:
+    build:
+      context: .
+      dockerfile: Dockerfile.vllm
+    runtime: nvidia
+    command:
+      - --model=zai-org/GLM-OCR
+      - --served-model-name=glm-ocr
+      - --allowed-local-media-path=/data
+      - --port=8099
+      - --max-model-len=24576
+      - '--speculative-config={"method": "mtp", "num_speculative_tokens": 1}'
+      - --gpu-memory-utilization=0.80
+    ports:
+      - "8099:8099"
+    shm_size: 8g
+    volumes:
+      - ${HF_HOME:-${HOME}/.cache/huggingface}:/root/.cache/huggingface
+      - ${HOME}:/data:ro
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN:-}
+      - HF_HUB_OFFLINE=1
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["0"]
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8099/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  glm-ocr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./glmocr/config.yaml:/app/config.yaml:ro
+    environment:
+      - GLMOCR_OCR_API_HOST=vllm
+      - GLMOCR_CONFIG=/app/config.yaml
+    depends_on:
+      vllm:
+        condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["0"]
+              capabilities: [gpu]
